@@ -6,14 +6,11 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 
 public final class Lua {
 
     public static final int MULTRET = -1;
-
-    private interface UpcastLuaKFunction {
-        int run(MemoryAddress state, int status, MemoryAddress context);
-    }
 
     private final LibraryLookup liblua;
 
@@ -28,9 +25,12 @@ public final class Lua {
         this.loadSymbols();
     }
 
+    public Lua(Path libraryPath) {
+        this(LibraryLookup.ofPath(libraryPath));
+    }
+
     public Lua(int version) {
-        this.liblua = LibraryLookup.ofLibrary("lua" + version);
-        this.loadSymbols();
+        this(LibraryLookup.ofLibrary("lua" + version));
     }
 
     private void loadSymbols() {
@@ -64,13 +64,6 @@ public final class Lua {
                 MethodType.methodType(int.class, MemoryAddress.class, int.class, int.class, int.class, MemoryAddress.class, MemoryAddress.class),
                 FunctionDescriptor.of(CLinker.C_INT, CLinker.C_POINTER, CLinker.C_INT, CLinker.C_INT, CLinker.C_INT, CLinker.C_POINTER, CLinker.C_POINTER)
             );
-    }
-
-    private UpcastLuaKFunction upcast(LuaKFunction f) {
-        return (internal, status, context) -> {
-            LuaState state = new LuaState(this, internal);
-            return f.run(state, status, context);
-        };
     }
 
     public LuaState newState() {
@@ -122,24 +115,13 @@ public final class Lua {
     }
 
     // TODO: Figure out a replacement for context
-    public int pCallK(LuaState state, int numArgs, int numResults, int messageHandler, MemoryAddress context, LuaKFunction k) {
+    public int pCallK(LuaState state, int numArgs, int numResults, int messageHandler, MemoryAddress context, LuaKFunctionPtr k) {
         MemoryAddress internal = state.internal();
         MemoryAddress upcastRunAddress;
         if (k == null) {
             upcastRunAddress = MemoryAddress.NULL;
         } else {
-            UpcastLuaKFunction upcasted = upcast(k);
-            MethodHandle upcastRunHandle;
-            try {
-                upcastRunHandle = MethodHandles.lookup()
-                    .findVirtual(upcasted.getClass(), "run", MethodType.methodType(int.class, MemoryAddress.class, int.class, MemoryAddress.class));
-            } catch (NoSuchMethodException | IllegalAccessException e) {
-                throw new RuntimeException("Illegal access to own method", e);
-            }
-            // TODO: When do I close this?
-            MemorySegment upcastRunFunc = CLinker.getInstance().upcallStub(upcastRunHandle,
-                FunctionDescriptor.of(CLinker.C_INT, CLinker.C_POINTER, CLinker.C_INT, CLinker.C_POINTER));
-            upcastRunAddress = upcastRunFunc.address();
+            upcastRunAddress = k.getSegment().address();
         }
         try {
             return (int) this.pCallK.invokeExact(internal, numArgs, numResults, messageHandler, context, upcastRunAddress);
@@ -154,10 +136,11 @@ public final class Lua {
     }
 
     public int doFile(LuaState state, String path) {
-        if (loadFile(state, path) == 0) {
+        int result = loadFile(state, path);
+        if (result == 0) {
             return pCall(state, 0, Lua.MULTRET, 0);
         } else {
-            return 0;
+            return result;
         }
     }
 
