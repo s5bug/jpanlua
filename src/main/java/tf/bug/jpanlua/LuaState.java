@@ -49,4 +49,20 @@ public record LuaState(Lua lua, MemoryAddress internal) implements AutoCloseable
         return this.lua.newUserDataUV(this, size, numUserValues);
     }
 
+    public MemoryAddress pushString(String str) {
+        return this.lua.pushString(this, str);
+    }
+
+    public void pushNumber(double num) {
+        this.lua.pushNumber(this, num);
+    }
+
+    public void setField(int index, String fieldName) {
+        this.lua.setField(this, index, fieldName);
+    }
+
+    public void setGlobal(String name) {
+        this.lua.setGlobal(this, name);
+    }
+
 }

@@ -36,3 +36,13 @@ try(LuaState state = lua.newState()) {
     state.doFile("script.lua");
 }
 ```
+
+## assumptions
+
+Below is a list of assumptions put in place due to either JVM limitations or
+Lua's default configuration. In other words, support is only planned for
+the intersection of platforms that both mainline Lua is already built to and
+official versions of JDKs are built to.
+
+- `sizeof(intptr_t) == sizeof(size_t) == sizeof(void*)`
+- `LUA_FLOAT_TYPE == double`
