@@ -25,4 +25,28 @@ public record LuaState(Lua lua, MemoryAddress internal) implements AutoCloseable
         return this.lua.doFile(this, path);
     }
 
+    public int getTable(int index) {
+        return this.lua.getTable(this, index);
+    }
+
+    public void setTable(int index) {
+        this.lua.setTable(this, index);
+    }
+
+    public int getTop() {
+        return this.lua.getTop(this);
+    }
+
+    public void createTable(int numSeq, int numEnt) {
+        this.lua.createTable(this, numSeq, numEnt);
+    }
+
+    public void newTable() {
+        this.lua.newTable(this);
+    }
+
+    public MemoryAddress newUserDataUV(MemoryAddress size, int numUserValues) {
+        return this.lua.newUserDataUV(this, size, numUserValues);
+    }
+
 }
