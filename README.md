@@ -1,7 +1,7 @@
 # jpanlua
 
 Java bindings to liblua using
-[JEP 398: Foreign Linker API](https://openjdk.java.net/jeps/389).
+[JEP 389: Foreign Linker API](https://openjdk.java.net/jeps/389).
 
 Requires JDK 16 or above.
 
